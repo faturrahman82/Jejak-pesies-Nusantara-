@@ -1,0 +1,27 @@
+name: jejak_spesies_nusantara
+description: Jelajahi catatan biodiversitas dari seluruh Indonesia.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cached_network_image: ^3.4.1
+  flutter_map: ^8.3.2
+  http: ^1.6.0
+  intl: ^0.20.2
+  latlong2: ^0.10.1
+  shared_preferences: ^2.5.6
+  url_launcher: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  shared_preferences_platform_interface: ^2.4.2
+
+flutter:
+  uses-material-design: true
