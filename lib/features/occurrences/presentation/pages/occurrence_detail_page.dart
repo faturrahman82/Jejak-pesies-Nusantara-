@@ -6,6 +6,7 @@ import '../../../../app/app_theme.dart';
 import '../../application/occurrence_controller.dart';
 import '../../domain/species_occurrence.dart';
 import '../widgets/occurrence_map_view.dart';
+import '../widgets/local_name_label.dart';
 import '../widgets/photo_panel.dart';
 
 class OccurrenceDetailPage extends StatelessWidget {
@@ -50,6 +51,13 @@ class OccurrenceDetailPage extends StatelessWidget {
           occurrence.scientificName,
           style: Theme.of(context).textTheme.headlineMedium
               ?.copyWith(fontStyle: FontStyle.italic),
+        ),
+        const SizedBox(height: 8),
+        _SectionTitle('Nama lokal'),
+        LocalNameLabel(
+          occurrence: occurrence,
+          controller: controller,
+          compact: false,
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -133,12 +141,14 @@ class OccurrenceDetailPage extends StatelessWidget {
             _InfoRow(label: 'Lisensi catatan', value: occurrence.license),
           ],
         ),
-        if (occurrence.firstPhoto?.credit case final credit?) ...[
+        if (occurrence.firstPhoto?.credit != null ||
+            occurrence.firstPhoto?.license != null) ...[
           const SizedBox(height: 20),
-          _SectionTitle('Kredit foto'),
+          _SectionTitle('Kredit dan lisensi foto'),
           _InfoCard(
             children: [
-              _InfoRow(label: 'Foto oleh', value: credit),
+              if (occurrence.firstPhoto?.credit case final credit?)
+                _InfoRow(label: 'Foto oleh', value: credit),
               _InfoRow(
                 label: 'Lisensi foto',
                 value: occurrence.firstPhoto?.license,

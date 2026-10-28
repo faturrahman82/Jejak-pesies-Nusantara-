@@ -14,10 +14,15 @@ void main() async {
 }
 
 class SpeciesApi {
-  final HttpClient _upstream = HttpClient()
-    ..connectionTimeout = const Duration(seconds: 10);
+  SpeciesApi({HttpClient? upstream, Uri? gbifBaseUri})
+    : _upstream = upstream ?? HttpClient(),
+      _gbifBaseUri = gbifBaseUri ?? Uri.https('api.gbif.org', '/v1') {
+    _upstream.connectionTimeout = const Duration(seconds: 10);
+  }
+
+  final HttpClient _upstream;
+  final Uri _gbifBaseUri;
   final _ResponseCache _cache = _ResponseCache();
-  static const _gbifBaseUri = 'https://api.gbif.org/v1';
 
   Future<void> handle(HttpRequest request) async {
     _setCorsHeaders(request.response);
@@ -42,6 +47,8 @@ class SpeciesApi {
         await _search(request);
       } else if (path == '/api/provinces') {
         await _suggestProvinces(request);
+      } else if (path.startsWith('/api/species/')) {
+        await _vernacularNames(request);
       } else if (path.startsWith('/api/occurrence/')) {
         await _detail(request);
       } else {
@@ -63,10 +70,17 @@ class SpeciesApi {
 
   Future<void> _search(HttpRequest request) async {
     final query = request.uri.queryParameters;
-    final offset = _boundedInt(query['offset'], fallback: 0, min: 0, max: 99999);
+    final offset = _boundedInt(
+      query['offset'],
+      fallback: 0,
+      min: 0,
+      max: 99999,
+    );
     final limit = _boundedInt(query['limit'], fallback: 20, min: 1, max: 300);
     if (offset + limit > 100000) {
-      throw const FormatException('Batas pencarian GBIF adalah 100.000 catatan.');
+      throw const FormatException(
+        'Batas pencarian GBIF adalah 100.000 catatan.',
+      );
     }
 
     final parameters = <String, String>{
@@ -79,9 +93,7 @@ class SpeciesApi {
     _copyIfPresent(query, parameters, 'stateProvince');
     await _proxy(
       request.response,
-      Uri.parse('$_gbifBaseUri/occurrence/search').replace(
-        queryParameters: parameters,
-      ),
+      _gbifUri('/occurrence/search').replace(queryParameters: parameters),
     );
   }
 
@@ -95,9 +107,8 @@ class SpeciesApi {
     final limit = _boundedInt(query['limit'], fallback: 8, min: 1, max: 20);
     await _proxy(
       request.response,
-      Uri.parse('$_gbifBaseUri/occurrence/search/stateProvince').replace(
-        queryParameters: {'q': text, 'limit': '$limit'},
-      ),
+      _gbifUri('/occurrence/search/stateProvince')
+          .replace(queryParameters: {'q': text, 'limit': '$limit'}),
     );
   }
 
@@ -109,17 +120,41 @@ class SpeciesApi {
       });
       return;
     }
+    await _proxy(request.response, _gbifUri('/occurrence/$id'));
+  }
+
+  Future<void> _vernacularNames(HttpRequest request) async {
+    final segments = request.uri.pathSegments;
+    if (segments.length != 4 || segments.last != 'vernacularNames') {
+      _writeJson(request.response, HttpStatus.notFound, {
+        'error': 'Endpoint nama lokal tidak ditemukan.',
+      });
+      return;
+    }
+
+    final speciesKey = int.tryParse(segments[2]);
+    if (speciesKey == null || speciesKey < 0) {
+      _writeJson(request.response, HttpStatus.badRequest, {
+        'error': 'Kunci spesies harus berupa angka GBIF.',
+      });
+      return;
+    }
+
     await _proxy(
       request.response,
-      Uri.parse('$_gbifBaseUri/occurrence/$id'),
+      _gbifUri('/species/$speciesKey/vernacularNames')
+          .replace(queryParameters: const {'limit': '100'}),
     );
   }
 
+  Uri _gbifUri(String path) =>
+      _gbifBaseUri.replace(path: '${_gbifBaseUri.path}$path');
+
   Future<void> _proxy(HttpResponse response, Uri target) async {
     final result = await _cache.get(target, () async {
-      final upstreamRequest = await _upstream.getUrl(target).timeout(
-        const Duration(seconds: 20),
-      );
+      final upstreamRequest = await _upstream
+          .getUrl(target)
+          .timeout(const Duration(seconds: 20));
       upstreamRequest.headers.set(HttpHeaders.acceptHeader, 'application/json');
       upstreamRequest.headers.set(
         HttpHeaders.userAgentHeader,
@@ -128,9 +163,10 @@ class SpeciesApi {
       final upstreamResponse = await upstreamRequest.close().timeout(
         const Duration(seconds: 20),
       );
-      final body = await utf8.decoder.bind(upstreamResponse).join().timeout(
-        const Duration(seconds: 20),
-      );
+      final body = await utf8.decoder
+          .bind(upstreamResponse)
+          .join()
+          .timeout(const Duration(seconds: 20));
       return _CachedResponse(upstreamResponse.statusCode, body);
     });
 
@@ -164,7 +200,10 @@ class SpeciesApi {
     response.headers
       ..set(HttpHeaders.accessControlAllowOriginHeader, '*')
       ..set(HttpHeaders.accessControlAllowMethodsHeader, 'GET, OPTIONS')
-      ..set(HttpHeaders.accessControlAllowHeadersHeader, 'Accept, Content-Type');
+      ..set(
+        HttpHeaders.accessControlAllowHeadersHeader,
+        'Accept, Content-Type',
+      );
   }
 
   void _writeJson(HttpResponse response, int status, Object body) {
@@ -180,6 +219,8 @@ class SpeciesApi {
     response.write(body);
     unawaited(response.close());
   }
+
+  void close() => _upstream.close(force: true);
 }
 
 class _CachedResponse {

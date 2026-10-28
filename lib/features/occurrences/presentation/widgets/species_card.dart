@@ -4,19 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../app/app_theme.dart';
+import '../../application/occurrence_controller.dart';
 import '../../domain/species_occurrence.dart';
+import 'local_name_label.dart';
 import 'photo_panel.dart';
 
 class SpeciesCard extends StatelessWidget {
   const SpeciesCard({
     super.key,
     required this.occurrence,
+    required this.controller,
     required this.isFavorite,
     required this.onTap,
     required this.onFavorite,
   });
 
   final SpeciesOccurrence occurrence;
+  final OccurrenceController controller;
   final bool isFavorite;
   final VoidCallback onTap;
   final VoidCallback onFavorite;
@@ -101,12 +105,33 @@ class SpeciesCard extends StatelessWidget {
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(fontStyle: FontStyle.italic),
                         ),
+                        LocalNameLabel(
+                          key: ValueKey('local-name-${occurrence.id}'),
+                          occurrence: occurrence,
+                          controller: controller,
+                          compact: true,
+                        ),
                         const SizedBox(height: 10),
-                        Wrap(spacing: 8, children: [
-                          if (occurrence.firstPhoto != null) const Text('Foto tersedia', style: TextStyle(fontSize: 11)),
-                          if (occurrence.hasCoordinates) const Text('Ada koordinat', style: TextStyle(fontSize: 11)),
-                          if (date != null) const Text('Ada tanggal', style: TextStyle(fontSize: 11)),
-                        ]),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            if (occurrence.firstPhoto != null)
+                              const Text(
+                                'Foto tersedia',
+                                style: TextStyle(fontSize: 11),
+                              ),
+                            if (occurrence.hasCoordinates)
+                              const Text(
+                                'Ada koordinat',
+                                style: TextStyle(fontSize: 11),
+                              ),
+                            if (date != null)
+                              const Text(
+                                'Ada tanggal',
+                                style: TextStyle(fontSize: 11),
+                              ),
+                          ],
+                        ),
                         _MetadataLine(
                           icon: Icons.place_outlined,
                           text: occurrence.location ?? occurrence.country,

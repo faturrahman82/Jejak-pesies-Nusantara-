@@ -38,6 +38,12 @@ void main() {
         if (request.url.path.endsWith('/occurrence/42')) {
           return http.Response(jsonEncode(_record), 200);
         }
+        if (request.url.path.endsWith('/species/5231190/vernacularNames')) {
+          return http.Response(
+            '{"results":[{"vernacularName":"Dara laut","language":"ind","preferred":true}]}',
+            200,
+          );
+        }
         return http.Response('{}', 404);
       }),
     );
@@ -49,24 +55,26 @@ void main() {
     tester.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
     await tester.pumpWidget(SpeciesApp(controller: controller, apiClient: api));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(find.text('Chlidonias hybrida'), findsOneWidget);
-    expect(find.byType(BackdropFilter), findsOneWidget);
+    expect(find.byType(BackdropFilter), findsWidgets);
+    expect(find.text('Dara laut'), findsOneWidget);
     expect(
       tester.widget<Scaffold>(find.byType(Scaffold).first).extendBody,
       isTrue,
     );
 
     await tester.tap(find.byTooltip('Simpan favorit').first);
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     await tester.tap(find.text('Favorit'));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(find.text('Catatan tersimpan'), findsOneWidget);
     expect(find.text('Chlidonias hybrida'), findsOneWidget);
 
     await tester.tap(find.text('Chlidonias hybrida'));
-    await tester.pumpAndSettle();
+    await _pumpFrames(tester);
     expect(find.text('Detail catatan'), findsOneWidget);
+    expect(find.text('Dara laut'), findsOneWidget);
     expect(find.text('Klasifikasi'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Sumber catatan'),
@@ -76,6 +84,12 @@ void main() {
     expect(find.text('Sumber catatan'), findsOneWidget);
     tester.platformDispatcher.clearAccessibilityFeaturesTestValue();
   });
+}
+
+Future<void> _pumpFrames(WidgetTester tester) async {
+  for (var frame = 0; frame < 10; frame++) {
+    await tester.pump(const Duration(milliseconds: 50));
+  }
 }
 
 final _record = <String, dynamic>{
@@ -91,4 +105,13 @@ final _record = <String, dynamic>{
   'basisOfRecord': 'HUMAN_OBSERVATION',
   'datasetName': 'iNaturalist research-grade observations',
   'references': 'https://www.inaturalist.org/observations/42',
+  'taxonRank': 'SPECIES',
+  'speciesKey': 5231190,
+  'media': [
+    {
+      'identifier': 'https://example.org/species.jpg',
+      'creator': 'Pengamat Nusantara',
+      'license': 'https://creativecommons.org/licenses/by-nc/4.0/',
+    },
+  ],
 };

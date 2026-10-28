@@ -57,6 +57,7 @@ class FavoritesPage extends StatelessWidget {
                       final occurrence = records[index];
                       return SpeciesCard(
                         occurrence: occurrence,
+                        controller: controller,
                         isFavorite: true,
                         onTap: () => onOpen(occurrence),
                         onFavorite: () => controller.toggleFavorite(occurrence),

@@ -24,6 +24,9 @@ class OccurrenceRepository {
 
   Future<List<String>> suggestNames(String query) => _api.suggestNames(query);
 
+  Future<String?> indonesianVernacularName(String speciesKey) =>
+      _api.indonesianVernacularName(speciesKey);
+
   Future<SpeciesOccurrence> byId(String id) async =>
       SpeciesOccurrence.fromJson(await _api.occurrenceById(id));
 }

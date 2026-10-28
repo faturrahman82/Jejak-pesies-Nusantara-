@@ -8,6 +8,7 @@ void main() {
 
     expect(occurrence.id, '12345');
     expect(occurrence.scientificName, 'Chlidonias hybrida');
+    expect(occurrence.speciesKey, '5231190');
     expect(occurrence.groupLabel, 'Burung');
     expect(occurrence.location, 'Rungkut, Surabaya, Jawa Timur, Indonesia');
     expect(occurrence.eventDate?.year, 2026);
@@ -45,7 +46,30 @@ void main() {
     expect(page.count, 21);
     expect(page.endOfRecords, isTrue);
     expect(page.results, hasLength(1));
+    expect(page.consumedResultCount, 1);
     expect(OccurrencePage.fromJson(const {}).results, isEmpty);
+  });
+
+  test('does not include records with a missing photo URL', () {
+    final page = OccurrencePage.fromJson({
+      'offset': 0,
+      'count': 2,
+      'endOfRecords': true,
+      'results': [
+        _record(),
+        {
+          'key': 77,
+          'scientificName': 'No photo species',
+          'country': 'Indonesia',
+          'media': [
+            {'identifier': '  '},
+          ],
+        },
+      ],
+    });
+
+    expect(page.results.map((item) => item.id), ['12345']);
+    expect(page.consumedResultCount, 2);
   });
 }
 
@@ -60,6 +84,7 @@ Map<String, dynamic> _record() => {
   'family': 'Laridae',
   'genus': 'Chlidonias',
   'taxonRank': 'SPECIES',
+  'speciesKey': 5231190,
   'stateProvince': 'Jawa Timur',
   'locality': 'Rungkut',
   'gadm': {

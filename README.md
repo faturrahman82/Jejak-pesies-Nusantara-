@@ -5,7 +5,7 @@ Aplikasi Flutter untuk menjelajahi catatan kemunculan spesies di Indonesia dari 
 ## Fitur
 
 - Pencarian catatan spesies di Indonesia.
-- Kartu dengan foto jika tersedia, nama ilmiah, kelompok, lokasi, dan tanggal.
+- Kartu berfoto dengan nama ilmiah, nama lokal Indonesia jika tersedia, kelompok, lokasi, dan tanggal.
 - Detail klasifikasi, lokasi, koordinat, kategori IUCN, jenis catatan, dataset, sumber, serta kredit dan lisensi foto jika tersedia.
 - Peta marker dari catatan yang sudah dimuat dan memiliki koordinat.
 - Favorit lokal yang tetap tersedia setelah aplikasi dibuka kembali.
@@ -15,7 +15,7 @@ Aplikasi Flutter untuk menjelajahi catatan kemunculan spesies di Indonesia dari 
 
 - Flutter dan Dart.
 - API Jejak Spesies Nusantara buatan sendiri sebagai perantara GBIF. API mengunci pencarian ke Indonesia, membatasi pagination, menyediakan filter provinsi, dan menyimpan cache respons selama 45 detik.
-- GBIF Occurrence API sebagai sumber data di belakang API buatan sendiri.
+- GBIF Occurrence API sebagai sumber catatan dan GBIF Species API untuk nama lokal Indonesia.
 - `http` untuk permintaan API, `flutter_map` dan `latlong2` untuk peta, `cached_network_image` untuk foto, `shared_preferences` untuk ID favorit, `intl` untuk tanggal Indonesia, dan `url_launcher` untuk tautan sumber.
 - Peta menggunakan tile OpenStreetMap dan menampilkan atribusinya.
 
@@ -42,6 +42,7 @@ Ganti `192.168.1.10` dengan alamat IP komputer pada jaringan Wi-Fi yang sama.
 - `GET /api/occurrence/search?q=burung&stateProvince=Jawa%20Timur` — pencarian berdasarkan provinsi.
 - `GET /api/provinces?q=jawa` — saran provinsi dari GBIF.
 - `GET /api/occurrence/{gbifId}` — detail catatan.
+- `GET /api/species/{speciesKey}/vernacularNames` — nama lokal dari GBIF Species API.
 
 ## Menjalankan pemeriksaan
 

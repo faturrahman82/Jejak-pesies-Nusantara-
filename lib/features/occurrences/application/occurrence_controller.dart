@@ -20,6 +20,7 @@ class OccurrenceController extends ChangeNotifier {
   final FavoritesStore _favoritesStore;
   final List<SpeciesOccurrence> _occurrences = [];
   final List<SpeciesOccurrence> _favoriteRecords = [];
+  final Map<String, Future<String?>> _localNames = {};
   Set<String> _favoriteIds = {};
   bool _loadingMore = false;
   bool _loadingFavorites = true;
@@ -41,7 +42,37 @@ class OccurrenceController extends ChangeNotifier {
   String? get loadMoreError => _loadMoreError;
   String get query => _query;
 
-  Future<List<String>> suggestNames(String query) => _repository.suggestNames(query);
+  Future<List<String>> suggestNames(String query) =>
+      _repository.suggestNames(query);
+
+  Future<String?> localNameFor(SpeciesOccurrence occurrence) {
+    final key =
+        occurrence.speciesKey ??
+        (occurrence.taxonRank?.toUpperCase() == 'SPECIES'
+            ? occurrence.taxonKey
+            : null);
+    if (key == null) return Future.value(null);
+    return _localNames.putIfAbsent(key, () async {
+      try {
+        return await _repository.indonesianVernacularName(key);
+      } catch (_) {
+        _localNames.remove(key);
+        rethrow;
+      }
+    });
+  }
+
+  Future<String?> reloadLocalName(SpeciesOccurrence occurrence) {
+    final key =
+        occurrence.speciesKey ??
+        (occurrence.taxonRank?.toUpperCase() == 'SPECIES'
+            ? occurrence.taxonKey
+            : null);
+    if (key != null) {
+      _localNames.remove(key);
+    }
+    return localNameFor(occurrence);
+  }
 
   Future<void> loadFavorites() async {
     try {
@@ -77,21 +108,23 @@ class OccurrenceController extends ChangeNotifier {
     _nextOffset = 0;
     notifyListeners();
 
-    final page = await _repository.search(offset: 0, query: _query, province: province);
+    final page = await _repository.search(
+      offset: 0,
+      query: _query,
+      province: province,
+    );
     if (generation != _generation) return page;
     final shuffled = [...page.results]..shuffle(_random);
     _append(shuffled);
-    _nextOffset = page.offset + page.results.length;
+    _nextOffset = page.offset + page.consumedResultCount;
     _hasMore =
-        !page.endOfRecords &&
-        _nextOffset < page.count &&
-        _nextOffset < 100000;
+        !page.endOfRecords && _nextOffset < page.count && _nextOffset < 100000;
     notifyListeners();
     return page;
   }
 
   Future<void> loadNextPage() async {
-    if (_loadingMore || !_hasMore || _occurrences.isEmpty) return;
+    if (_loadingMore || !_hasMore) return;
     _loadingMore = true;
     _loadMoreError = null;
     notifyListeners();
@@ -103,7 +136,7 @@ class OccurrenceController extends ChangeNotifier {
       );
       final shuffled = [...page.results]..shuffle(_random);
       _append(shuffled);
-      _nextOffset = page.offset + page.results.length;
+      _nextOffset = page.offset + page.consumedResultCount;
       _hasMore =
           !page.endOfRecords &&
           _nextOffset < page.count &&

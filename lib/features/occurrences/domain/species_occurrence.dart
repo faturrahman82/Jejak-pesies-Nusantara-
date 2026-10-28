@@ -26,6 +26,7 @@ class SpeciesOccurrence {
     this.recordUrl,
     this.license,
     this.taxonKey,
+    this.speciesKey,
   });
 
   final String id;
@@ -51,6 +52,7 @@ class SpeciesOccurrence {
   final String? recordUrl;
   final String? license;
   final String? taxonKey;
+  final String? speciesKey;
   final List<OccurrenceMedia> media;
 
   bool get hasCoordinates => latitude != null && longitude != null;
@@ -136,7 +138,9 @@ class SpeciesOccurrence {
       recordedBy: _string(json['recordedBy']),
       recordUrl: _string(json['references']),
       license: _string(json['license']),
-      taxonKey: _identifier(json['speciesKey']) ?? _identifier(json['taxonKey']),
+      taxonKey:
+          _identifier(json['speciesKey']) ?? _identifier(json['taxonKey']),
+      speciesKey: _identifier(json['speciesKey']),
       media: media,
     );
   }

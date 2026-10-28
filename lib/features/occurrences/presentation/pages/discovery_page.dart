@@ -42,11 +42,26 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
 
   Future<void> _chooseProvince() async {
     final input = TextEditingController(text: widget.controller.province);
-    final value = await showDialog<String>(context: context, builder: (context) => AlertDialog(
-      title: const Text('Filter provinsi'),
-      content: TextField(controller: input, decoration: const InputDecoration(hintText: 'Contoh: Jawa Timur')),
-      actions: [TextButton(onPressed: () => Navigator.pop(context, ''), child: const Text('Semua provinsi')), FilledButton(onPressed: () => Navigator.pop(context, input.text.trim()), child: const Text('Terapkan'))],
-    ));
+    final value = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Filter provinsi'),
+        content: TextField(
+          controller: input,
+          decoration: const InputDecoration(hintText: 'Contoh: Jawa Timur'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, ''),
+            child: const Text('Semua provinsi'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, input.text.trim()),
+            child: const Text('Terapkan'),
+          ),
+        ],
+      ),
+    );
     if (value == null || !mounted) return;
     widget.controller.province = value;
     await _refresh();
@@ -79,14 +94,27 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
   void _search(String query) {
     _debounce?.cancel();
     setState(() {
-      _suggestions = query.trim().isEmpty ? [] : widget.controller.occurrences.map((item) => item.scientificName).where((name) => name.toLowerCase().contains(query.toLowerCase())).toSet().take(3).toList();
+      _suggestions = query.trim().isEmpty
+          ? []
+          : widget.controller.occurrences
+                .map((item) => item.scientificName)
+                .where(
+                  (name) => name.toLowerCase().contains(query.toLowerCase()),
+                )
+                .toSet()
+                .take(3)
+                .toList();
     });
     _debounce = Timer(const Duration(milliseconds: 420), () async {
       if (!mounted) return;
-      setState(() => _request = widget.controller.loadFirstPage(query: query));
+      setState(() {
+        _request = widget.controller.loadFirstPage(query: query);
+      });
       try {
         final names = await widget.controller.suggestNames(query);
-        if (mounted && _searchController.text == query) setState(() => _suggestions = names);
+        if (mounted && _searchController.text == query) {
+          setState(() => _suggestions = names);
+        }
       } catch (_) {
         // Saran bersifat opsional; hasil pencarian tetap ditampilkan.
       }
@@ -97,7 +125,9 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
     final request = widget.controller.loadFirstPage(
       query: _searchController.text,
     );
-    setState(() => _request = request);
+    setState(() {
+      _request = request;
+    });
     await request;
   }
 
@@ -142,8 +172,33 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                               ),
                       ),
                     ),
-                    if (_suggestions.isNotEmpty) Wrap(children: _suggestions.map((name) => ActionChip(label: Text(name), onPressed: () { _searchController.text = name; _search(name); setState(() => _suggestions = []); })).toList()),
-                    Align(alignment: Alignment.centerRight, child: TextButton.icon(onPressed: _chooseProvince, icon: const Icon(Icons.tune, size: 18), label: Text(widget.controller.province.isEmpty ? 'Filter provinsi' : widget.controller.province))),
+                    if (_suggestions.isNotEmpty)
+                      Wrap(
+                        children: _suggestions
+                            .map(
+                              (name) => ActionChip(
+                                label: Text(name),
+                                onPressed: () {
+                                  _searchController.text = name;
+                                  _search(name);
+                                  setState(() => _suggestions = []);
+                                },
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: _chooseProvince,
+                        icon: const Icon(Icons.tune, size: 18),
+                        label: Text(
+                          widget.controller.province.isEmpty
+                              ? 'Filter provinsi'
+                              : widget.controller.province,
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     SizedBox(
                       height: 42,
@@ -211,16 +266,33 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                     return RefreshIndicator(
                       onRefresh: _refresh,
                       child: ListView(
+                        controller: _scrollController,
                         physics: const AlwaysScrollableScrollPhysics(),
                         children: [
                           SizedBox(
                             height: 180,
                             child: RequestState.empty(
                               message: _selectedGroup == 'Semua'
-                                  ? 'Belum ada catatan yang cocok. Coba kata pencarian lain.'
+                                  ? 'Belum ada catatan bergambar yang cocok. Coba kata pencarian lain.'
                                   : 'Belum ada catatan untuk kelompok ini di hasil yang dimuat.',
                             ),
                           ),
+                          if (widget.controller.loadMoreError != null)
+                            TextButton.icon(
+                              onPressed: widget.controller.loadNextPage,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Coba muat catatan berikutnya'),
+                            )
+                          else if (widget.controller.loadingMore)
+                            const Center(child: CircularProgressIndicator())
+                          else if (widget.controller.hasMore)
+                            Center(
+                              child: TextButton.icon(
+                                onPressed: widget.controller.loadNextPage,
+                                icon: const Icon(Icons.expand_more),
+                                label: const Text('Muat catatan berikutnya'),
+                              ),
+                            ),
                         ],
                       ),
                     );
@@ -247,6 +319,7 @@ class _DiscoveryPageState extends State<DiscoveryPage> {
                         final occurrence = results[index];
                         final card = SpeciesCard(
                           occurrence: occurrence,
+                          controller: widget.controller,
                           isFavorite: widget.controller.favoriteIds.contains(
                             occurrence.id,
                           ),
